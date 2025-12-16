@@ -8,8 +8,8 @@
         #pano { width: 100%; height: 100%; }
         .hotspot-icon {
             position: absolute;
-            width: 24px;
-            height: 24px;
+            width: 32px;
+            height: 32px;
             cursor: pointer;
         }
         /* === Info Button (STATIC) === */
@@ -66,6 +66,27 @@
             cursor: pointer;
             float: right;            
         }
+        /* Tooltip */
+        .hotspot-tooltip {
+            position: absolute;
+            bottom: 130%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.75);
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .hotspot:hover .hotspot-tooltip {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-4px);
+        }
     </style>    
 </head>
 <body>
@@ -113,9 +134,16 @@
         panorama.hotspots.forEach(h => {
             const el = document.createElement("div");
             el.className = "hotspot";
-            el.innerHTML = `<img class="hotspot-icon" src="/storage/${h.icon_path}">`;
+            el.innerHTML = `<img class="hotspot-icon" src="/storage/${h.icon_path}">
+            <div class="hotspot-tooltip">
+                ${h.label ?? 'Hotspot'}
+            </div>`;
 
             el.onclick = () => {
+                 // jika target sama dengan panorama sekarang → stop
+                if (h.target_panorama_id === panorama.id) {
+                    return;
+                }
                 const target = panoramas.find(p => p.id === h.target_panorama_id);
                 if (target) showPanorama(target);
             };
@@ -130,19 +158,19 @@
         document.getElementById("infoTitle").innerText = panorama.name;
         document.getElementById("infoContent").innerText = panorama.description || "Tidak ada informasi.";      
         
-    }
+        }
 
-    // === EVENT INFO BUTTON ===
-    document.getElementById("infoButton").onclick = () => {
-            document.getElementById("infoPopup").style.display = "block";
+        // === EVENT INFO BUTTON ===
+        document.getElementById("infoButton").onclick = () => {
+                document.getElementById("infoPopup").style.display = "block";
+            };
+
+        // Close popup
+        document.getElementById("infoPopupClose").onclick = () => {
+            document.getElementById("infoPopup").style.display = "none";
         };
 
-    // Close popup
-    document.getElementById("infoPopupClose").onclick = () => {
-        document.getElementById("infoPopup").style.display = "none";
-    };
-
-    showPanorama(currentPanorama);   
+        showPanorama(currentPanorama);   
 
     </script>
 </body>

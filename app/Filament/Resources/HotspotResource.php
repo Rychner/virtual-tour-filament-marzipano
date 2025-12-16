@@ -52,7 +52,7 @@ class HotspotResource extends Resource
                 ->image()
                 ->nullable(),
 
-            Forms\Components\Textarea::make('description')
+            Forms\Components\Textarea::make('label')
                 ->columnSpanFull(),
         ]);
     }

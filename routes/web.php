@@ -18,4 +18,4 @@ Route::get('/', function () {
     return view('home');
 });
 
-Route::get('/virtual-tour', [VirtualTourController::class, 'index'])->name('virtualtour.start');;
+Route::get('/virtual-tour', [VirtualTourController::class, 'index'])->name('virtualtour.start');
