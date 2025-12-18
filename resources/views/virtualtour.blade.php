@@ -498,8 +498,8 @@
             =========================== */
             const roomCategories = {
                 dosen: [
-                    { label: "Dosen A", panorama_slug: "lobby", hotspot_label: "Dosen A", yaw: -17, pitch: -2 },
-                    { label: "Dosen B", panorama_slug: "basement" }
+                    { label: "Dosen A", panorama_slug: "lobby", hotspot_label: "Dosen A" },
+                    { label: "Dosen B", panorama_slug: "lobby", hotspot_label: "Dosen B" }
                 ],
                 rapat: [
                     { label: "Rapat Utama", panorama_slug: "ruang-rapat-utama" }
