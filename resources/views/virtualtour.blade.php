@@ -7,10 +7,14 @@
         html, body { margin:0; height:100%; overflow:hidden; }
         #pano { width: 100%; height: 100%; }
         .hotspot-icon {
-            position: absolute;
+            display: block;
             width: 32px;
             height: 32px;
             cursor: pointer;
+        }
+
+        .hotspot {
+            position: relative;
         }
         /* === Info Button (STATIC) === */
         #infoButton {
@@ -30,9 +34,9 @@
         /* === Modern Popup === */
         #infoPopup {
             position: fixed;
-            top: 13%;
-            left: 13%;
-            transform: translate(-50%, -50%);
+            top: 20px;
+            left: 60px;
+            
             width: 180px;
             max-width: 90%;
             background: rgba(255, 255, 255, 0.15);
@@ -138,6 +142,96 @@
         .floor-btn:hover, #backToFloor:hover {
             background: #1d4ed8;
         }
+
+        #roomMapContainer {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 260px;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            border-radius: 12px;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        #roomMapHeader {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            cursor: pointer;
+        }
+
+        #toggleRoomMap {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        #roomMapContent {
+            padding: 12px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .category-btn, .room-item, #backToCategory {
+            width: 100%;
+            margin: 6px 0;
+            padding: 8px;
+            background: #2563eb;
+            border: none;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .category-btn:hover, #backToCategory:hover {
+            background: #1d4ed8;
+        }
+
+        .pulse-wrapper.pulse::after {
+            content: "";
+            position: absolute;
+            inset: -8px;
+            border-radius: 50%;
+            animation: pulse-ring 1.5s infinite;
+            border: 2px solid rgba(0, 150, 255, 0.7);
+        }
+
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(0.8);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1.6);
+                opacity: 0;
+            }
+        }
+
+        .hotspot.pulse {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(0, 150, 255, 0.7);
+            }
+            70% {
+                transform: scale(1.2);
+                box-shadow: 0 0 0 15px rgba(0, 150, 255, 0);
+            }
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(0, 150, 255, 0);
+            }
+        }
     </style>    
 </head>
 <body>
@@ -178,6 +272,31 @@
             </div>
         </div>
     </div>
+
+    <div id="roomMapContainer">
+        <div id="roomMapHeader">
+            <span>Room Map</span>
+            <button id="toggleRoomMap">▲</button>
+        </div>
+
+        <div id="roomMapContent" class="hidden">
+
+            <!-- KATEGORI -->
+            <div id="categoryList">
+                <button class="category-btn" data-category="dosen">Ruang Dosen</button>
+                <button class="category-btn" data-category="rapat">Ruang Rapat</button>
+                <button class="category-btn" data-category="kelas">Ruang Kelas</button>
+            </div>
+
+            <!-- LIST RUANGAN -->
+            <div id="roomsList" class="hidden">
+                <button id="backToCategory">← Kembali</button>
+                <div id="roomss"></div>
+            </div>
+
+        </div>
+    </div>
+
     
     <script>
         document.addEventListener("DOMContentLoaded", () => {
@@ -238,7 +357,6 @@
         });
     </script>
 
-
     <!-- Library Marzipano -->
     <script src="https://unpkg.com/marzipano@0.10.1/dist/marzipano.js"></script>
     <script>
@@ -267,7 +385,15 @@
             const viewer = new Marzipano.Viewer(document.getElementById('pano'));
             let currentScene = null;
 
-            function showPanorama(panorama) {
+            function focusToHotspot(scene, hotspot) {
+                const view = scene.view();
+
+                view.setYaw(hotspot.yaw * Math.PI / 180);
+                
+                view.setPitch(hotspot.pitch * Math.PI / 180);
+            }       
+
+            function showPanorama(panorama, highlightHotspotSlug = null) {
                 if (!panorama) return;
 
                 const source = Marzipano.ImageUrlSource.fromString(
@@ -300,10 +426,22 @@
                 panorama.hotspots.forEach(h => {
                     const el = document.createElement("div");
                     el.className = "hotspot";
+                    el.dataset.label = h.label;
+                    
                     el.innerHTML = `
-                        <img class="hotspot-icon" src="/storage/${h.icon_path}">
+                        <div class="pulse-wrapper">
+                            <img class="hotspot-icon" src="/storage/${h.icon_path}">
+                        </div>
                         <div class="hotspot-tooltip">${h.label ?? ''}</div>
                     `;
+
+                    // 🎯 HIGHLIGHT HOTSPOT
+                    if (highlightHotspotSlug && h.label === highlightHotspotSlug) {
+                        setTimeout(() => {
+                            el.querySelector(".pulse-wrapper")?.classList.add("pulse");
+                            focusToHotspot(scene, h);
+                        }, 300); // delay kecil biar scene siap
+                    } 
 
                     el.onclick = () => {
                         if (h.target_panorama_id === panorama.id) return;
@@ -311,11 +449,15 @@
                         if (target) showPanorama(target);
                     };
 
-                    scene.hotspotContainer().createHotspot(el, {
+                    const hotspotObj = scene.hotspotContainer().createHotspot(el, {
                         yaw: h.yaw * Math.PI / 180,
                         pitch: h.pitch * Math.PI / 180
-                    });
+                    });                          
                 });
+
+                // Update info popup title + content
+                document.getElementById("infoTitle").innerText = panorama.name;
+                document.getElementById("infoContent").innerText = panorama.description || "Tidak ada informasi.";
             }
 
             /* ===========================
@@ -352,12 +494,83 @@
             };
 
             /* ===========================
+            ROOM MAP (KATEGORI)
+            =========================== */
+            const roomCategories = {
+                dosen: [
+                    { label: "Dosen A", panorama_slug: "lobby", hotspot_label: "Dosen A", yaw: -17, pitch: -2 },
+                    { label: "Dosen B", panorama_slug: "basement" }
+                ],
+                rapat: [
+                    { label: "Rapat Utama", panorama_slug: "ruang-rapat-utama" }
+                ],
+                kelas: [
+                    { label: "Kelas 101", panorama_slug: "kelas-101" },
+                    { label: "Kelas 102", panorama_slug: "kelas-102" }
+                ]
+            };
+
+            const toggleBtnRoom = document.getElementById("toggleRoomMap");
+            const contentRoom = document.getElementById("roomMapContent");
+
+            const categoryList = document.getElementById("categoryList");
+            const roomList = document.getElementById("roomsList");
+            const roomsContainer = document.getElementById("roomss");
+            const backBtn = document.getElementById("backToCategory");
+
+            // TOGGLE ROOM MAP
+            toggleBtnRoom.onclick = () => {
+                contentRoom.classList.toggle("hidden");
+                toggleBtnRoom.innerText = contentRoom.classList.contains("hidden") ? "▲" : "▼";
+            };
+
+            document.querySelectorAll(".category-btn").forEach(btn => {
+                btn.onclick = () => {
+                    const category = btn.dataset.category;
+
+                    categoryList.classList.add("hidden");
+                    roomList.classList.remove("hidden");
+
+                    roomsContainer.innerHTML = "";
+
+                    roomCategories[category].forEach(room => {
+                        const el = document.createElement("button");
+                        el.className = "room-item";
+                        el.innerText = room.label;
+
+                        el.onclick = () => {
+                            const panorama = panoramas.find(
+                                p => p.slug === room.panorama_slug
+                            );
+                            if (panorama) showPanorama(panorama, room.hotspot_label);
+                        };
+
+                        roomsContainer.appendChild(el);
+                    });
+                };
+            });
+
+            backBtn.onclick = () => {
+                roomList.classList.add("hidden");
+                categoryList.classList.remove("hidden");
+            };
+
+            // === EVENT INFO BUTTON ===
+            document.getElementById("infoButton").onclick = () => {
+                document.getElementById("infoPopup").style.display = "block";
+            };
+
+            // Close popup
+            document.getElementById("infoPopupClose").onclick = () => {
+                document.getElementById("infoPopup").style.display = "none";
+            };
+
+            /* ===========================
             LOAD PERTAMA
             =========================== */
             showPanorama(panoramas[0]);
         });
-    </script>
-    
+    </script>    
 
 </body>
 </html>
