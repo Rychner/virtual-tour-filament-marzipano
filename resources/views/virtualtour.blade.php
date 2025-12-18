@@ -87,6 +87,57 @@
             opacity: 1;
             transform: translateX(-50%) translateY(-4px);
         }
+        
+        #floorMapContainer {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 260px;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            border-radius: 12px;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        #floorMapHeader {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            cursor: pointer;
+        }
+
+        #toggleFloorMap {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        #floorMapContent {
+            padding: 12px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .floor-btn, #backToFloor {
+            width: 100%;
+            margin: 6px 0;
+            padding: 8px;
+            background: #2563eb;
+            border: none;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .floor-btn:hover, #backToFloor:hover {
+            background: #1d4ed8;
+        }
     </style>    
 </head>
 <body>
@@ -104,74 +155,214 @@
         <p id="infoContent"></p>
     </div>
 
+    <div id="floorMapContainer">
+        <div id="floorMapHeader">
+            <span>Floor Map</span>
+            <button id="toggleFloorMap">▲</button>
+        </div>
+    
+        <div id="floorMapContent" class="hidden">
+            <!-- LIST LANTAI -->
+            <div id="floorList">
+                <button class="floor-btn" data-floor="1">Lantai 1</button>
+                <button class="floor-btn" data-floor="2">Lantai 2</button>
+                <button class="floor-btn" data-floor="3">Lantai 3</button>
+                <button class="floor-btn" data-floor="4">Lantai 4</button>
+                <button class="floor-btn" data-floor="5">Lantai 5</button>
+            </div>
+    
+            <!-- LIST RUANGAN -->
+            <div id="roomList" class="hidden">
+                <button id="backToFloor">← Kembali</button>
+                <div id="rooms"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+
+            const toggleBtn = document.getElementById("toggleFloorMap");
+            const content = document.getElementById("floorMapContent");
+
+            const floorList = document.getElementById("floorList");
+            const roomList = document.getElementById("roomList");
+            const roomsContainer = document.getElementById("rooms");
+            const backBtn = document.getElementById("backToFloor");
+
+            // DATA RUANGAN
+            const floorRooms = {
+                1: ["Lobby", "Ruang 120", "Tata Usaha", "Ruang Pimpinan"],
+                2: ["Kamar Tidur 1", "Kamar Tidur 2"],
+                3: ["Ruang Kerja"],
+                4: ["Gudang"],
+                5: ["Atap"]
+            };
+
+            // === FUNCTION TAMPILKAN RUANGAN ===
+            window.showRoomsByFloor = function (floor) {
+                if (!floorRooms[floor]) return;
+
+                floorList.classList.add("hidden");
+                roomList.classList.remove("hidden");
+
+                roomsContainer.innerHTML = "";
+                floorRooms[floor].forEach(room => {
+                    const el = document.createElement("div");
+                    el.innerText = "• " + room;
+                    el.style.margin = "6px 0";
+                    roomsContainer.appendChild(el);
+                });
+            };
+
+            // TOGGLE FLOOR MAP
+            toggleBtn.onclick = () => {
+                content.classList.toggle("hidden");
+                toggleBtn.innerText = content.classList.contains("hidden") ? "▲" : "▼";
+            };
+
+            // KLIK BUTTON LANTAI
+            document.querySelectorAll(".floor-btn").forEach(btn => {
+                btn.onclick = () => {
+                    const floor = btn.dataset.floor;
+                    showRoomsByFloor(floor);
+                };
+            });
+
+            // KEMBALI KE LIST LANTAI
+            backBtn.onclick = () => {
+                roomList.classList.add("hidden");
+                floorList.classList.remove("hidden");
+            };
+
+        });
+    </script>
+
+
     <!-- Library Marzipano -->
     <script src="https://unpkg.com/marzipano@0.10.1/dist/marzipano.js"></script>
     <script>
-        const panoramas = @json($panoramas); // data dari controller
-        let currentPanorama = panoramas[0]; // mulai dari panorama pertama
+        document.addEventListener("DOMContentLoaded", () => {
 
-        // Marzipano viewer
-        const viewer = new Marzipano.Viewer(document.getElementById('pano'));
+            /* ===========================
+            DATA PANORAMA DARI CONTROLLER
+            =========================== */
+            const panoramas = @json($panoramas);
 
-        function showPanorama(panorama) {
-        const source = Marzipano.ImageUrlSource.fromString("/storage/" + panorama.image_path);
-        const geometry = new Marzipano.EquirectGeometry([{ width: 4000 }]);
-        const limiter = Marzipano.RectilinearView.limit.traditional(1024, 100*Math.PI/180);
-
-        const view = new Marzipano.RectilinearView({
-            yaw: panorama.initial_yaw * Math.PI/180,
-            pitch: panorama.initial_pitch * Math.PI/180,
-            fov: panorama.initial_fov * Math.PI/180
-        }, limiter);
-
-        const scene = viewer.createScene({ source, geometry, view });
-        scene.switchTo();
-
-        // hapus hotspot lama
-        document.querySelectorAll('.hotspot').forEach(el => el.remove());
-
-        // tampilkan hotspot
-        panorama.hotspots.forEach(h => {
-            const el = document.createElement("div");
-            el.className = "hotspot";
-            el.innerHTML = `<img class="hotspot-icon" src="/storage/${h.icon_path}">
-            <div class="hotspot-tooltip">
-                ${h.label ?? 'Hotspot'}
-            </div>`;
-
-            el.onclick = () => {
-                 // jika target sama dengan panorama sekarang → stop
-                if (h.target_panorama_id === panorama.id) {
-                    return;
-                }
-                const target = panoramas.find(p => p.id === h.target_panorama_id);
-                if (target) showPanorama(target);
+            /* ===========================
+            MAPPING LANTAI → PANORAMA
+            (UBAH SESUAI DATA KAMU)
+            =========================== */
+            const floorPanoramaMap = {
+                1: "lobby",
+                2: "lantai-2",
+                3: "ruang-kerja",
+                4: "gudang",
+                5: "atap"
             };
 
-            scene.hotspotContainer().createHotspot(el, {
-                yaw: h.yaw * Math.PI / 180,
-                pitch: h.pitch * Math.PI / 180
+            /* ===========================
+            MARZIPANO SETUP
+            =========================== */
+            const viewer = new Marzipano.Viewer(document.getElementById('pano'));
+            let currentScene = null;
+
+            function showPanorama(panorama) {
+                if (!panorama) return;
+
+                const source = Marzipano.ImageUrlSource.fromString(
+                    "/storage/" + panorama.image_path
+                );
+
+                const geometry = new Marzipano.EquirectGeometry([{ width: 4000 }]);
+
+                const limiter = Marzipano.RectilinearView.limit.traditional(
+                    1024,
+                    100 * Math.PI / 180
+                );
+
+                const view = new Marzipano.RectilinearView({
+                    yaw: panorama.initial_yaw * Math.PI / 180,
+                    pitch: panorama.initial_pitch * Math.PI / 180,
+                    fov: panorama.initial_fov * Math.PI / 180
+                }, limiter);
+
+                const scene = viewer.createScene({
+                    source,
+                    geometry,
+                    view
+                });
+
+                scene.switchTo();
+                currentScene = scene;
+
+                /* === HOTSPOT === */
+                panorama.hotspots.forEach(h => {
+                    const el = document.createElement("div");
+                    el.className = "hotspot";
+                    el.innerHTML = `
+                        <img class="hotspot-icon" src="/storage/${h.icon_path}">
+                        <div class="hotspot-tooltip">${h.label ?? ''}</div>
+                    `;
+
+                    el.onclick = () => {
+                        if (h.target_panorama_id === panorama.id) return;
+                        const target = panoramas.find(p => p.id === h.target_panorama_id);
+                        if (target) showPanorama(target);
+                    };
+
+                    scene.hotspotContainer().createHotspot(el, {
+                        yaw: h.yaw * Math.PI / 180,
+                        pitch: h.pitch * Math.PI / 180
+                    });
+                });
+            }
+
+            /* ===========================
+            FLOOR MAP EVENT
+            =========================== */
+            document.querySelectorAll(".floor-btn").forEach(btn => {
+                btn.onclick = () => {
+                    const floor = btn.dataset.floor;
+                    const slug = floorPanoramaMap[floor];
+
+                    const panorama = panoramas.find(p => p.slug === slug);
+                    if (panorama) {
+                        showPanorama(panorama);
+                    } else {
+                        alert("Panorama lantai belum terdaftar");
+                    }
+
+                    // 2. tampilkan list ruangan
+                    if (window.showRoomsByFloor) {
+                        window.showRoomsByFloor(floor);
+                    }
+                };
             });
-        });
 
-        // Update info popup title + content
-        document.getElementById("infoTitle").innerText = panorama.name;
-        document.getElementById("infoContent").innerText = panorama.description || "Tidak ada informasi.";      
-        
-        }
+            /* ===========================
+            TOGGLE FLOOR MAP
+            =========================== */
+            const toggleBtn = document.getElementById("toggleFloorMap");
+            const content = document.getElementById("floorMapContent");
 
-        // === EVENT INFO BUTTON ===
-        document.getElementById("infoButton").onclick = () => {
-                document.getElementById("infoPopup").style.display = "block";
+            toggleBtn.onclick = () => {
+                content.classList.toggle("hidden");
+                toggleBtn.innerText = content.classList.contains("hidden") ? "▲" : "▼";
             };
 
-        // Close popup
-        document.getElementById("infoPopupClose").onclick = () => {
-            document.getElementById("infoPopup").style.display = "none";
-        };
-
-        showPanorama(currentPanorama);   
-
+            /* ===========================
+            LOAD PERTAMA
+            =========================== */
+            showPanorama(panoramas[0]);
+        });
     </script>
+    
+
+</body>
+</html>
+
+
+    
 </body>
 </html>
