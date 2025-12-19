@@ -74,9 +74,13 @@ class HotspotResource extends Resource
 
                 Tables\Columns\TextColumn::make('target.name')
                     ->label('Target Panorama'),
+                
+                Tables\Columns\TextColumn::make('label')
+                    ->label('Label'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),

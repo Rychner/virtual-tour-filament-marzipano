@@ -3,13 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Models\Panorama;
+use App\Models\Room;
 
 class VirtualTourController extends Controller
 {
     public function index()
     {
         $panoramas = Panorama::with('hotspots')->get();
-        return view('virtualtour', compact('panoramas'));
+
+        $rooms = Room::with('panorama')->get()->groupBy('category');
+
+        return view('virtualtour', compact('panoramas', 'rooms'));
     }
 
     public function show($slug)

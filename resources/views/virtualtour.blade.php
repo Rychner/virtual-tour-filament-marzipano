@@ -366,6 +366,7 @@
             DATA PANORAMA DARI CONTROLLER
             =========================== */
             const panoramas = @json($panoramas);
+            const roomCategories = @json($rooms);
 
             /* ===========================
             MAPPING LANTAI → PANORAMA
@@ -436,7 +437,7 @@
                     `;
 
                     // 🎯 HIGHLIGHT HOTSPOT
-                    if (highlightHotspotSlug && h.label === highlightHotspotSlug) {
+                    if (highlightHotspotSlug && h.id === highlightHotspotSlug) {
                         setTimeout(() => {
                             el.querySelector(".pulse-wrapper")?.classList.add("pulse");
                             focusToHotspot(scene, h);
@@ -491,24 +492,7 @@
             toggleBtn.onclick = () => {
                 content.classList.toggle("hidden");
                 toggleBtn.innerText = content.classList.contains("hidden") ? "▲" : "▼";
-            };
-
-            /* ===========================
-            ROOM MAP (KATEGORI)
-            =========================== */
-            const roomCategories = {
-                dosen: [
-                    { label: "Dosen A", panorama_slug: "lobby", hotspot_label: "Dosen A" },
-                    { label: "Dosen B", panorama_slug: "lobby", hotspot_label: "Dosen B" }
-                ],
-                rapat: [
-                    { label: "Rapat Utama", panorama_slug: "ruang-rapat-utama" }
-                ],
-                kelas: [
-                    { label: "Kelas 101", panorama_slug: "kelas-101" },
-                    { label: "Kelas 102", panorama_slug: "kelas-102" }
-                ]
-            };
+            };            
 
             const toggleBtnRoom = document.getElementById("toggleRoomMap");
             const contentRoom = document.getElementById("roomMapContent");
@@ -533,16 +517,18 @@
 
                     roomsContainer.innerHTML = "";
 
+                    if(!roomCategories[category]) return;
+
                     roomCategories[category].forEach(room => {
                         const el = document.createElement("button");
                         el.className = "room-item";
-                        el.innerText = room.label;
+                        el.innerText = room.name;
 
                         el.onclick = () => {
                             const panorama = panoramas.find(
-                                p => p.slug === room.panorama_slug
+                                p => p.id === room.panorama_id
                             );
-                            if (panorama) showPanorama(panorama, room.hotspot_label);
+                            if (panorama) showPanorama(panorama, room.hotspot_id);
                         };
 
                         roomsContainer.appendChild(el);
