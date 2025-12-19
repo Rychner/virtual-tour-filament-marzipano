@@ -65,9 +65,7 @@ class RoomResource extends Resource
                         Hotspot::query()->pluck('label', 'id')
                     )
                     ->searchable()
-                    ->required(),
-
-                
+                    ->required(),                
             ]);
     }
 
